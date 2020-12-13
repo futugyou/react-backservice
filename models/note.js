@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 dotenv.config()
 
-const url = process.env.MONGODB_URI 
+const url = process.env.MONGODB_URI
 mongoose.connect(url, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -15,8 +15,15 @@ mongoose.connect(url, {
 })
 
 const noteSchema = new mongoose.Schema({
-    content: String,
-    data: Date,
+    content: {
+        type: String,
+        minlength: 5,
+        required: true
+    },
+    data: {
+        type: Date,
+        required: true
+    },
     important: Boolean,
 })
 
