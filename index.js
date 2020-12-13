@@ -20,7 +20,9 @@ let notes = [
 ]
 
 import express from 'express'
+import cors from 'cors'
 const app = express()
+app.use(cors())
 app.use(express.json())
 
 const requestLogger = (request, response, next) => {
@@ -76,6 +78,28 @@ app.post('/api/notes', (request, response) => {
     }
     notes = notes.concat(note)
     response.json(note)
+})
+
+app.put('/api/notes/:id', (request, response) => {
+    const id = Number(request.params.id)
+    const note = notes.find(note => note.id == id)
+    if (note) {
+        const body = request.body
+        if (!body.content) {
+            return res.status(400).json({
+                error: 'content missing'
+            })
+        }
+        const newnote = {
+            ...note,
+            content: body.content,
+            important: body.important || false
+        }
+        notes = notes.map(n => n.id !== id ? n : newnote)
+        response.json(newnote) 
+    } else {
+        response.status(404).end()
+    }
 })
 
 const generateId = () => {
