@@ -1,18 +1,4 @@
-import mongoose from 'mongoose'
-import dotenv from 'dotenv'
-dotenv.config()
-
-const url = process.env.MONGODB_URI
-mongoose.connect(url, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false,
-    useCreateIndex: true
-}).then(result => {
-    console.log('connected to mongodb')
-}).catch((error) => {
-    console.log('error conntecting to mongodb:', error.message)
-})
+import mongoose from 'mongoose' 
 
 const noteSchema = new mongoose.Schema({
     content: {
