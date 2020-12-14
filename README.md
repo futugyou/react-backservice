@@ -25,3 +25,14 @@ npm install dotenv
 npm install eslint --save-dev
 node_modules/.bin/eslint --init
 ```
+
+### test
+```
+npm install --save-dev supertest
+npm install --save-dev jest  @babel/plugin-transform-modules-commonjs
+```
+
+### for unix and window 
+```
+npm install --save-dev cross-env
+```
