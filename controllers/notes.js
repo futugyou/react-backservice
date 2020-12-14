@@ -6,11 +6,13 @@ const notesRouter = express.Router()
 
 notesRouter.get('/', async (request, response) => {
     const notes = await Note.find({})
+        .populate('user', { id: 1, username: 1, name: 1 })
     response.json(notes)
 })
 
 notesRouter.get('/:id', async (request, response) => {
     const note = await Note.findById(request.params.id)
+        .populate('user', { id: 1, username: 1, name: 1 })
     if (note) {
         response.json(note)
     } else {
