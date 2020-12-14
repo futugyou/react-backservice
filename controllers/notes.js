@@ -33,7 +33,7 @@ notesRouter.delete('/:id', async (request, response, next) => {
 notesRouter.post('/', async (request, response, next) => {
     const body = request.body
     if (!body.content) {
-        return res.status(400).json({
+        return response.status(400).json({
             error: 'content missing'
         })
     }

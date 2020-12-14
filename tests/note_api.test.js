@@ -36,10 +36,40 @@ test('there are two motes', async () => {
 })
 
 test('the first note is about http methods', async () => {
-    const response = await api.get('/api/notes')    
-    const contents = response.body.map(r=>r.content)
+    const response = await api.get('/api/notes')
+    const contents = response.body.map(r => r.content)
     // must match exactly , all word
     expect(contents).toContain('HTML is easy')
+})
+
+test('a valid note can be added', async () => {
+    const newNote = {
+        content: 'async/await make async easy',
+        important: true
+    }
+
+    await api.post('/api/notes').send(newNote)
+        .expect(200)
+        .expect('Content-Type', `application/json; charset=utf-8`)
+
+    const response = await api.get('/api/notes')
+    const contents = response.body.map(r => r.content)
+
+    expect(response.body).toHaveLength(initialNotes.length + 1)
+    expect(contents).toContain(
+        'async/await make async easy'
+    )
+})
+
+test('note without content is not added', async () => {
+    const newNote = {
+        important: true
+    }
+
+    await api.post('/api/notes').send(newNote)
+        .expect(400)
+    const response = await api.get('/api/notes')
+    expect(response.body).toHaveLength(initialNotes.length)
 })
 
 afterAll(() => {
