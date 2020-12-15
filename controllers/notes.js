@@ -1,6 +1,16 @@
 import express from 'express'
 import Note from '../models/note.js'
 import User from '../models/user.js'
+import jwt from 'jsonwebtoken'
+
+const getTokenFrom = (request) => {
+    const authorization = request.get('authorization')
+    if (authorization
+        && authorization.toLowerCase().startsWith('bearer')) {
+        return authorization.substring(7)
+    }
+    return null
+}
 
 const notesRouter = express.Router()
 
@@ -27,7 +37,20 @@ notesRouter.delete('/:id', async (request, response) => {
 
 notesRouter.post('/', async (request, response) => {
     const body = request.body
-    const user = await User.findById(body.userId)
+    const token = getTokenFrom(request)
+    if (!token) {
+        return response.status(401).json(({
+            error: 'token missing or invalid'
+        }))
+    }
+    const decodeedToken = jwt.verify(token, process.env.SECRET)
+    if (!decodeedToken.id) {
+        return response.status(401).json(({
+            error: 'token missing or invalid'
+        }))
+    }
+
+    const user = await User.findById(decodeedToken.id)
     console.log(user)
     const note = new Note({
         content: body.content,
