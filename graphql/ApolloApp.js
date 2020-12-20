@@ -1,5 +1,6 @@
-import pkg from 'apollo-server';
-const { ApolloServer, gql } = pkg;
+import pkg from 'apollo-server'
+import uuid from 'react-uuid'
+const { ApolloServer, UserInputError, gql } = pkg
 
 let persons = [
     {
@@ -25,26 +26,85 @@ let persons = [
 ]
 
 const typeDefs = gql`
+type Address {
+    street:String!
+    city:String!
+}
+
 type Person {
     name :String!
     phone:String
-    street:String!
-    city:String!
+    address:Address!
     id:ID!
+}
+
+enum YesNo {
+    YES
+    NO
 }
 
 type Query {
     personCount:Int!
-    allPersons:[Person!]!
+    allPersons(phone: YesNo):[Person!]!
     findPerson(name:String!):Person
 }
+
+type Mutation {
+    addPerson(
+        name: String!
+        phone: String
+        street: String!
+        city: String!
+    ): Person
+    editNumber(
+        name:String!
+        phone:String!
+    ): Person
+}
+
 `
 const resolvers = {
     Query: {
         personCount: () => persons.length,
-        allPersons: () => persons,
+        allPersons: (root, args) => {
+            if (!args.phone) {
+                return persons
+            }
+            const byphone = (person) => args.phone === 'YES' ? person.phone : !person.phone
+            return persons.filter(byphone)
+        },
         findPerson: (root, args) =>
             persons.find(p => p.name === args.name)
+    },
+    Person: {
+        address: (root) => {
+            return {
+                street: root.street,
+                city: root.city
+            }
+        }
+    },
+    Mutation: {
+        addPerson: (root, args) => {
+            if (persons.find(p => p.name === args.name)) {
+                throw new UserInputError('Name must be unique', {
+                    invalidArgs: args.name,
+                })
+            }
+            const person = { ...args, id: uuid() }
+            persons = persons.concat(person)
+            return person
+        },
+        editNumber: (root, args) => {
+            const person = persons.find(p => p.name === args.name)
+            if (!person) {
+                return null
+            }
+
+            const updateedPerson = { ...person, phone: args.phone }
+            persons = persons.map(p => p.name === args.name ? updateedPerson : p)
+            return updateedPerson
+        }
     }
 }
 
