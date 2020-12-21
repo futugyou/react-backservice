@@ -2,9 +2,10 @@ import pkg from 'apollo-server'
 import Person from '../models/person.js'
 import GqlUser from '../models/gqluser.js'
 import jwt from 'jsonwebtoken'
-const { ApolloServer, UserInputError, gql } = pkg
+const { ApolloServer, UserInputError, gql, PubSub } = pkg
 
 const JWT_SECRET = 'NEED_HERE_A_SECRET_KEY'
+const pubsub = new PubSub()
 
 const typeDefs = gql`
 type GqlUser{
@@ -62,6 +63,10 @@ type Mutation {
     ):GqlUser
 }
 
+type Subscription {
+    personAdded: Person!
+}
+
 `
 const resolvers = {
     Person: {
@@ -105,6 +110,7 @@ const resolvers = {
                     invalidArgs: args,
                 })
             }
+            pubsub.publish('PERSON_ADDED', { personAdded: person })
             return person
         },
         editNumber: async (root, args) => {
@@ -152,6 +158,11 @@ const resolvers = {
             }
             await currentUser.save()
             return currentUser
+        }
+    },
+    Subscription: {
+        personAdded: {
+            subscribe: () => pubsub.asyncIterator(['PERSON_ADDED'])
         }
     }
 }
