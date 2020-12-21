@@ -25,6 +25,7 @@ type Person {
     name :String!
     phone:String
     address:Address!
+    friendOf:[GqlUser!]!
     id:ID!
 }
 
@@ -75,15 +76,23 @@ const resolvers = {
                 street: root.street,
                 city: root.city
             }
+        },
+        friendOf: async (root) => {
+            const friends = await GqlUser.find({
+                friends: {
+                    $in: [root._id]
+                }
+            })
+            return friends
         }
     },
     Query: {
         personCount: () => Person.collection.countDocuments(),
         allPersons: (root, args) => {
             if (!args.phone) {
-                return Person.find({})
+                return Person.find({}).populate('friendOf')
             }
-            return Person.find({ phone: { $exists: args.phone === 'YES' } })
+            return Person.find({ phone: { $exists: args.phone === 'YES' } }).populate('friendOf')
         },
         findPerson: (root, args) => Person.find({ name: args.name }),
         me: (root, args, context) => context.currentUser
@@ -162,7 +171,9 @@ const resolvers = {
     },
     Subscription: {
         personAdded: {
-            subscribe: () => pubsub.asyncIterator(['PERSON_ADDED'])
+            subscribe: () => {
+                return pubsub.asyncIterator(['PERSON_ADDED'])
+            }
         }
     }
 }

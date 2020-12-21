@@ -20,7 +20,13 @@ const personSchema = new mongoose.Schema({
         type: String,
         required: true,
         minilength: 5
-    }
+    },
+    friendOf: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'GqlUser'
+        }
+    ]
 })
 
 const Person = mongoose.model('Person', personSchema)
