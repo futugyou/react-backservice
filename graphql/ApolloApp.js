@@ -57,21 +57,13 @@ type Mutation {
         username:String!
         password:String!
     ):Token
+    addAsFriend(
+        name:String!
+    ):GqlUser
 }
 
 `
 const resolvers = {
-    Query: {
-        personCount: () => Person.collection.countDocuments(),
-        allPersons: (root, args) => {
-            if (!args.phone) {
-                return Person.find({})
-            }
-            return Person.find({ phone: { $exists: args.phone === 'YES' } })
-        },
-        findPerson: (root, args) =>
-            Person.find({ name: args.name })
-    },
     Person: {
         address: (root) => {
             return {
@@ -80,8 +72,19 @@ const resolvers = {
             }
         }
     },
+    Query: {
+        personCount: () => Person.collection.countDocuments(),
+        allPersons: (root, args) => {
+            if (!args.phone) {
+                return Person.find({})
+            }
+            return Person.find({ phone: { $exists: args.phone === 'YES' } })
+        },
+        findPerson: (root, args) => Person.find({ name: args.name }),
+        me: (root, args, context) => context.currentUser
+    },
     Mutation: {
-        addPerson: async (root, args) => {
+        addPerson: async (root, args, context) => {
             const p = await Person.findOne({ name: args.name })
             if (p) {
                 throw new UserInputError('Name must be unique', {
@@ -89,8 +92,14 @@ const resolvers = {
                 })
             }
             const person = new Person({ ...args })
+            const currentUser = context.currentUser
+            if (!currentUser) {
+                throw new AuthenticationError("not authenticated")
+            }
             try {
                 await person.save()
+                currentUser.friends = currentUser.friends.concat(person)
+                await currentUser.save()
             } catch (error) {
                 throw new UserInputError(error.message, {
                     invalidArgs: args,
@@ -131,12 +140,34 @@ const resolvers = {
                 id: user._id
             }
             return { value: jwt.sign(userForToken, JWT_SECRET) }
+        },
+        addAsFriend: async (root, args, { currentUser }) => {
+            const nonFriendAlready = (person) => !currentUser.friends.map(f => f._id).includes(person._id)
+            if (!currentUser) {
+                throw new AuthenticationError("not authenticated")
+            }
+            const person = await Person.findOne({ name: args.name })
+            if (nonFriendAlready(person)) {
+                currentUser.friends = currentUser.friends.concat(person)
+            }
+            await currentUser.save()
+            return currentUser
         }
+    }
+}
+
+const context = async ({ req }) => {
+    const auth = req ? req.headers.authorization : null
+    if (auth && auth.toLowerCase().startsWith('bearer ')) {
+        const decodedToken = jwt.verify(auth.substring(7), JWT_SECRET)
+        const currentUser = await GqlUser.findById(decodedToken.id).populate('friends')
+        return { currentUser }
     }
 }
 
 const hqlServer = new ApolloServer({
     typeDefs,
     resolvers,
+    context,
 })
 export default hqlServer
