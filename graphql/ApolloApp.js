@@ -1,29 +1,6 @@
 import pkg from 'apollo-server'
-import uuid from 'react-uuid'
+import Person from '../models/person.js'
 const { ApolloServer, UserInputError, gql } = pkg
-
-let persons = [
-    {
-        name: "Arto Hellas",
-        phone: "040-123543",
-        street: "Tapiolankatu 5 A",
-        city: "Espoo",
-        id: "3d594650-3436-11e9-bc57-8b80ba54c431"
-    },
-    {
-        name: "Matti Luukkainen",
-        phone: "040-432342",
-        street: "Malminkaari 10 A",
-        city: "Helsinki",
-        id: '3d599470-3436-11e9-bc57-8b80ba54c431'
-    },
-    {
-        name: "Venla Ruuska",
-        street: "Nallemäentie 22 C",
-        city: "Helsinki",
-        id: '3d599471-3436-11e9-bc57-8b80ba54c431'
-    },
-]
 
 const typeDefs = gql`
 type Address {
@@ -65,16 +42,15 @@ type Mutation {
 `
 const resolvers = {
     Query: {
-        personCount: () => persons.length,
+        personCount: () => Person.collection.countDocuments(),
         allPersons: (root, args) => {
             if (!args.phone) {
-                return persons
+                return Person.find({})
             }
-            const byphone = (person) => args.phone === 'YES' ? person.phone : !person.phone
-            return persons.filter(byphone)
+            return Person.find({ phone: { $exists: args.phone === 'YES' } })
         },
         findPerson: (root, args) =>
-            persons.find(p => p.name === args.name)
+            Person.find({ name: args.name })
     },
     Person: {
         address: (root) => {
@@ -85,25 +61,37 @@ const resolvers = {
         }
     },
     Mutation: {
-        addPerson: (root, args) => {
-            if (persons.find(p => p.name === args.name)) {
+        addPerson: async (root, args) => {
+            const p = await Person.findOne({ name: args.name })
+            if (p) {
                 throw new UserInputError('Name must be unique', {
-                    invalidArgs: args.name,
+                    invalidArgs: p.name,
                 })
             }
-            const person = { ...args, id: uuid() }
-            persons = persons.concat(person)
+            const person = new Person({ ...args })
+            try {
+                await person.save()
+            } catch (error) {
+                throw new UserInputError(error.message, {
+                    invalidArgs: args,
+                })
+            }
             return person
         },
-        editNumber: (root, args) => {
-            const person = persons.find(p => p.name === args.name)
+        editNumber: async (root, args) => {
+            const person = Person.findOne({ name: args.name })
             if (!person) {
                 return null
             }
-
-            const updateedPerson = { ...person, phone: args.phone }
-            persons = persons.map(p => p.name === args.name ? updateedPerson : p)
-            return updateedPerson
+            person.phone = args.phone
+            try {
+                await person.save()
+            } catch (error) {
+                throw new UserInputError(error.message, {
+                    invalidArgs: args,
+                })
+            }
+            return person
         }
     }
 }

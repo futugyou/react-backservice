@@ -5,7 +5,7 @@ import logger from './utils/logger.js'
 import hqlServer from './graphql/ApolloApp.js'
 
 hqlServer.listen().then(({ url }) => {
-   logger.info(`hqlserver running on port ${url}`)
+   logger.info(`hqlserver running on port ${url}/graphql`)
 })
 const server = http.createServer(app)
 app.listen(config.PORT, () => {

@@ -11,7 +11,7 @@
 https://www.mongodb.com/cloud/atlas
 https://www.heroku.com/home
 ```
-npm install mongoose
+npm install mongoose mongoose-unique-validator
 ```
 node mongo.js 'password'
 
